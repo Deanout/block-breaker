@@ -1,0 +1,24 @@
+<!DOCTYPE html><html lang="en"><head>
+    <script src="p5.js"></script>
+    <script src="p5.sound.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <meta charset="utf-8">
+    <title>Block Miner</title>
+  </head>
+  <body>
+    <main>
+      <h1>Want to play a game?</h1>
+      <p>You win if you manage to mine any of the following:</p>
+      <ul>
+        <li>128 Grass</li>
+        <li>64 Dirt</li>
+        <li>32 Stone</li>
+        <li>16 Iron</li>
+        <li>8 Diamond</li>
+      </ul>
+      <p>Good luck!</p>
+      <form method="get">
+        <input type="number" name="seed" placeholder="Enter a seed..." value="">
+        <input type="submit" value="Play Game" onclick='this.form.action=location.pathname + "playgame.html";'>
+    </main>
+</body></html>
