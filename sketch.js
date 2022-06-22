@@ -24,7 +24,7 @@ let ironContainer = document.getElementById("iron");
 let restartButton = document.getElementById("restart");
 let activeContainer = grassContainer;
 
-let grassToCollect = 5;
+let grassToCollect = 128;
 let dirtToCollect = 64;
 let stoneToCollect = 32;
 let ironToCollect = 16;
