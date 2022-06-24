@@ -1,8 +1,3 @@
-const WIDTH = window.innerWidth;
-const HEIGHT = window.innerHeight * 0.9;
-const BLOCK_SIZE = 25;
-const JUMP_HEIGHT = 3;
-
 let continuePlaying = false;
 
 let frequency = 0.002;
@@ -15,12 +10,14 @@ let dirt = "dirt";
 let stone = "stone";
 let iron = "iron";
 let diamond = "diamond";
+let water = "water";
 
 let grassContainer = document.getElementById("grass");
 let dirtContainer = document.getElementById("dirt");
 let stoneContainer = document.getElementById("stone");
 let diamondContainer = document.getElementById("diamond");
 let ironContainer = document.getElementById("iron");
+let waterContainer = document.getElementById("water");
 let restartButton = document.getElementById("restart");
 let activeContainer = grassContainer;
 
@@ -36,6 +33,7 @@ let dirtColor = [115, 118, 83];
 let stoneColor = [58, 50, 50];
 let ironColor = [161, 157, 148];
 let diamondColor = [69, 172, 165];
+let waterColor = [212, 241, 249];
 let playerColor = [255, 0, 0];
 
 let grid = [];
@@ -44,7 +42,7 @@ let diamondChance = 5;
 let ironChance = 8;
 
 let player = {
-  x: 0,
+  x: findCenterNodeX(CENTER_WIDTH),
   y: 0,
   isFalling: false,
   inventory: {
@@ -53,6 +51,7 @@ let player = {
     stone: 0,
     iron: 0,
     diamond: 0,
+    water: 5,
   },
   selectedBlockType: grass,
 };
@@ -67,9 +66,20 @@ function setup() {
 }
 
 function draw() {
+  drawTerrain();
   doPlayerMovement();
   updatePlayerInventory();
   checkIfPlayerWon();
+  simulateWater();
+}
+
+function drawTerrain() {
+  for (let i = 0; i < grid.length; i++) {
+    let node = grid[i];
+    let { x, y, blockType } = node;
+    fill(getBlockTypeColor(blockType));
+    rect(x, y, BLOCK_SIZE, BLOCK_SIZE);
+  }
 }
 
 function checkIfPlayerWon() {
@@ -115,6 +125,10 @@ function doEventListeners() {
     player.selectedBlockType = iron;
     setActiveContainer(ironContainer);
   });
+  waterContainer.addEventListener("click", () => {
+    player.selectedBlockType = water;
+    setActiveContainer(waterContainer);
+  });
 }
 
 function setActiveContainer(container) {
@@ -147,6 +161,7 @@ function generateTerrain() {
         y: y,
         density: noiseValue,
         blockType: sky,
+        isFlowing: false,
       };
       grid.push(node);
       let index = grid.indexOf(node);
@@ -271,16 +286,6 @@ function doPlayerMoveLeft() {
   }
 }
 
-function findNode(x, y) {
-  let nodeX = x - (x % BLOCK_SIZE);
-  let nodeY = y - (y % BLOCK_SIZE);
-  for (let i = 0; i < grid.length; i++) {
-    if (grid[i].x === nodeX && grid[i].y === nodeY) {
-      return grid[i];
-    }
-  }
-}
-
 function updatePlayerPosition(newX, newY) {
   setPreviousPlayerPosition();
   player.x = newX;
@@ -308,7 +313,7 @@ function mousePressed() {
 function playerCanInteractWithBlock(node) {
   // check if node is 1 block from player
   let distance = dist(node.x, node.y, player.x, player.y);
-  return distance <= BLOCK_SIZE * 1.5;
+  return distance <= PLAYER_REACH;
 }
 
 function interactWithBlock(node) {
@@ -350,6 +355,9 @@ function addBlockTypeToInventory(blockType) {
     case iron:
       player.inventory.iron++;
       break;
+    case water:
+      player.inventory.water++;
+      break;
     default:
       break;
   }
@@ -357,6 +365,7 @@ function addBlockTypeToInventory(blockType) {
 
 function setAndDrawBlockType(node, blockType) {
   node.blockType = blockType;
+  updateFluidSimulationAtNode(node, true);
   fill(getBlockTypeColor(blockType));
   rect(node.x, node.y, BLOCK_SIZE, BLOCK_SIZE);
 }
@@ -375,6 +384,8 @@ function getBlockTypeColor(blockType) {
       return diamondColor;
     case iron:
       return ironColor;
+    case water:
+      return waterColor;
     default:
       return skyColor;
   }
@@ -400,6 +411,8 @@ function playerHasEnoughResources(blockType) {
       return player.inventory.diamond > 0;
     case iron:
       return player.inventory.iron > 0;
+    case water:
+      return player.inventory.water > 0;
     default:
       return false;
   }
@@ -411,6 +424,7 @@ function updatePlayerInventory() {
   stoneContainer.innerHTML = player.inventory.stone;
   diamondContainer.innerHTML = player.inventory.diamond;
   ironContainer.innerHTML = player.inventory.iron;
+  waterContainer.innerHTML = player.inventory.water;
 }
 
 function getContainerByBlockType(blockType) {
@@ -425,6 +439,8 @@ function getContainerByBlockType(blockType) {
       return diamondContainer;
     case iron:
       return ironContainer;
+    case water:
+      return waterContainer;
     default:
       return grassContainer;
   }
