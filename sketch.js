@@ -4,6 +4,8 @@ let frequency = 0.002;
 let amplitude = 1;
 let seed = 0;
 
+let timer = 0;
+
 let sky = "sky";
 let grass = "grass";
 let dirt = "dirt";
@@ -19,7 +21,7 @@ let diamondContainer = document.getElementById("diamond");
 let ironContainer = document.getElementById("iron");
 let waterContainer = document.getElementById("water");
 let restartButton = document.getElementById("restart");
-let activeContainer = grassContainer;
+let activeContainer = waterContainer;
 
 let grassToCollect = 128;
 let dirtToCollect = 64;
@@ -37,9 +39,13 @@ let waterColor = [212, 241, 249];
 let playerColor = [255, 0, 0];
 
 let grid = [];
+let masses = [];
+let newMasses = [];
+let playerAddedMasses = [];
 
 let diamondChance = 5;
 let ironChance = 8;
+let deltaTime = 0;
 
 let player = {
   x: findCenterNodeX(CENTER_WIDTH),
@@ -51,18 +57,22 @@ let player = {
     stone: 0,
     iron: 0,
     diamond: 0,
-    water: 5,
+    water: 999,
   },
-  selectedBlockType: grass,
+  selectedBlockType: water,
 };
 
+let nonSolidBlocks = [water, sky, player];
+
 function setup() {
-  frameRate(15);
+  frameRate(60);
   setSeed();
   createCanvas(WIDTH, HEIGHT);
   generateTerrain();
   doEventListeners();
-  setActiveContainer(grassContainer);
+  setActiveContainer(waterContainer);
+  let node = findNode(0, 0);
+  setAndDrawBlockType(node, water);
 }
 
 function draw() {
@@ -70,15 +80,52 @@ function draw() {
   doPlayerMovement();
   updatePlayerInventory();
   checkIfPlayerWon();
-  simulateWater();
+
+  doLiquidTick();
+  if (mouseIsPressed) {
+    mousePressed();
+  }
+}
+
+function findTopBlock(x) {
+  let topBlock = findNode(x, 0);
+  while (topBlock && topBlock.blockType === sky) {
+    topBlock = findNode(x, topBlock.y - BLOCK_SIZE);
+  }
+}
+
+function doLiquidTick() {
+  let now = Date.now();
+  if (now - deltaTime > 100) {
+    deltaTime = now;
+    simulateWater();
+  }
 }
 
 function drawTerrain() {
   for (let i = 0; i < grid.length; i++) {
     let node = grid[i];
     let { x, y, blockType } = node;
-    fill(getBlockTypeColor(blockType));
-    rect(x, y, BLOCK_SIZE, BLOCK_SIZE);
+
+    if (node.blockType === water) {
+      let mass = findMass(x, y);
+      rectMode(CORNER);
+      fill(skyColor);
+      rect(x, y, BLOCK_SIZE, BLOCK_SIZE);
+      rectMode(CORNERS);
+      fill(waterColor);
+      // fill rect with water up to the block_size / mass value
+      rect(
+        x,
+        y + (BLOCK_SIZE - (BLOCK_SIZE * mass.value) / BLOCK_SIZE),
+        x + BLOCK_SIZE,
+        y + BLOCK_SIZE
+      );
+    } else {
+      rectMode(CORNER);
+      fill(getBlockTypeColor(blockType));
+      rect(x, y, BLOCK_SIZE, BLOCK_SIZE);
+    }
   }
 }
 
@@ -161,9 +208,16 @@ function generateTerrain() {
         y: y,
         density: noiseValue,
         blockType: sky,
-        isFlowing: false,
       };
       grid.push(node);
+      let mass = {
+        x: x,
+        y: y,
+        value: 0,
+      };
+      masses.push(mass);
+      let newMass = Object.assign({}, mass);
+      newMasses.push(newMass);
       let index = grid.indexOf(node);
       paintTerrainTiles(node, index);
       paintOres(node, index);
@@ -237,7 +291,8 @@ function doPlayerJump() {
   for (let i = 0; i < JUMP_HEIGHT; i++) {
     if (
       keyIsDown(UP_ARROW) &&
-      findNode(player.x, player.y - BLOCK_SIZE).blockType === sky
+      (findNode(player.x, player.y - BLOCK_SIZE).blockType === sky ||
+        findNode(player.x, player.y - BLOCK_SIZE).blockType === water)
     ) {
       updatePlayerPosition(player.x, player.y - BLOCK_SIZE);
     }
@@ -254,7 +309,7 @@ function doPlayerFall() {
     return;
   }
   let node = findNode(player.x, player.y + BLOCK_SIZE);
-  if (node.blockType === sky) {
+  if (node.blockType === sky || node.blockType === water) {
     player.isFalling = true;
     updatePlayerPosition(player.x, player.y + BLOCK_SIZE);
   } else {
@@ -268,7 +323,8 @@ function doPlayerMoveRight() {
   }
   if (
     keyIsDown(RIGHT_ARROW) &&
-    findNode(player.x + BLOCK_SIZE, player.y).blockType === sky
+    (findNode(player.x + BLOCK_SIZE, player.y).blockType === sky ||
+      findNode(player.x + BLOCK_SIZE, player.y).blockType === water)
   ) {
     updatePlayerPosition(player.x + BLOCK_SIZE, player.y);
   }
@@ -280,7 +336,8 @@ function doPlayerMoveLeft() {
   }
   if (
     keyIsDown(LEFT_ARROW) &&
-    findNode(player.x - BLOCK_SIZE, player.y).blockType === sky
+    (findNode(player.x - BLOCK_SIZE, player.y).blockType === sky ||
+      findNode(player.x - BLOCK_SIZE, player.y).blockType === water)
   ) {
     updatePlayerPosition(player.x - BLOCK_SIZE, player.y);
   }
@@ -317,12 +374,20 @@ function playerCanInteractWithBlock(node) {
 }
 
 function interactWithBlock(node) {
-  if (mouseButton === LEFT && node.blockType !== sky) {
+  if (
+    mouseButton === LEFT &&
+    node.blockType !== sky &&
+    node.blockType !== water
+  ) {
     mineBlock(node);
     return;
   }
-  if (mouseButton === RIGHT && node.blockType === sky) {
+  if (
+    mouseButton === RIGHT &&
+    (node.blockType === sky || node.blockType === water)
+  ) {
     placeBlock(node);
+    return;
   }
   if (mouseButton === CENTER && node.blockType !== sky) {
     let container = getContainerByBlockType(node.blockType);
@@ -365,9 +430,14 @@ function addBlockTypeToInventory(blockType) {
 
 function setAndDrawBlockType(node, blockType) {
   node.blockType = blockType;
-  updateFluidSimulationAtNode(node, true);
-  fill(getBlockTypeColor(blockType));
-  rect(node.x, node.y, BLOCK_SIZE, BLOCK_SIZE);
+  if (blockType === water) {
+    let newMass = {
+      x: node.x,
+      y: node.y,
+      value: MAX_MASS,
+    };
+    playerAddedMasses.push(newMass);
+  }
 }
 
 function getBlockTypeColor(blockType) {
