@@ -3,8 +3,7 @@ let continuePlaying = false;
 let frequency = 0.002;
 let amplitude = 1;
 let seed = 0;
-
-let timer = 0;
+let debug = true;
 
 let sky = "sky";
 let grass = "grass";
@@ -85,6 +84,7 @@ function draw() {
   if (mouseIsPressed) {
     mousePressed();
   }
+  drawDebug();
 }
 
 function findTopBlock(x) {
@@ -96,7 +96,7 @@ function findTopBlock(x) {
 
 function doLiquidTick() {
   let now = Date.now();
-  if (now - deltaTime > 100) {
+  if (now - deltaTime) {
     deltaTime = now;
     simulateWater();
   }

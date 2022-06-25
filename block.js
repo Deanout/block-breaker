@@ -18,11 +18,16 @@ function findByXY(x, y, searchSpace) {
   if (nodeX > WIDTH || nodeY > HEIGHT) {
     return null;
   }
-  for (let i = 0; i < searchSpace.length; i++) {
-    if (searchSpace[i].x === nodeX && searchSpace[i].y === nodeY) {
-      return searchSpace[i];
-    }
-  }
+  let xIndex = nodeX / BLOCK_SIZE;
+  let yIndex = nodeY / BLOCK_SIZE;
+  let index = yIndex + xIndex * HEIGHT_IN_BLOCKS;
+
+  return searchSpace[index];
+  // for (let i = 0; i < searchSpace.length; i++) {
+  //   if (searchSpace[i].x === nodeX && searchSpace[i].y === nodeY) {
+  //     return searchSpace[i];
+  //   }
+  // }
 }
 
 function findCenterNodeX(width) {

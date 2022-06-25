@@ -1,10 +1,17 @@
 function simulateWater() {
   addPendingPlayerPlacedFluids();
+  let last = Date.now();
   calculateRemainingMasses();
+  remainingMassCalculationTime = Date.now() - last;
+  last = Date.now();
   copyMasses();
+  massCopyTime = Date.now() - last;
+  last = Date.now();
   setBlockTypesByMass();
-
+  setBlockTypesByMassTime = Date.now() - last;
+  last = Date.now();
   cleanupMassBoundaries();
+  boundaryCleanupTimer = Date.now() - last;
 }
 
 function addPendingPlayerPlacedFluids() {
@@ -82,10 +89,6 @@ function setBlockTypesByMass() {
 }
 
 function copyMasses() {
-  newMasses.forEach((newMass) => {
-    let mass = findMass(newMass.x, newMass.y);
-    mass.value = newMass.value;
-  });
   for (let x = 0; x < WIDTH; x += BLOCK_SIZE) {
     for (let y = 0; y < HEIGHT; y += BLOCK_SIZE) {
       let mass = findMass(x, y);
@@ -103,10 +106,10 @@ function pushWaterToBlockBelow(x, y, nonSolidBlocks, remainingMass) {
       checkHowToDistributeWaterVertically(remainingMass + mass.value) -
       mass.value;
 
-    if (Flow > MIN_FLOW) {
-      // Smooth flow
-      Flow *= 0.5;
-    }
+    // if (Flow > MIN_FLOW) {
+    //   // Smooth flow
+    //   Flow *= 0.5;
+    // }
 
     let minOfMaxSpeedAndRemainingMass = Math.min(
       MAX_WATER_SPEED,
@@ -132,10 +135,10 @@ function pushWaterToBlockLeft(x, y, nonSolidBlocks, remainingMass) {
     let neighborMass = findMass(x - BLOCK_SIZE, y);
     // Equalize amount of water in this block and its neighbor
     let Flow = (mass.value - neighborMass.value) / 4;
-    if (Flow > MIN_FLOW) {
-      // Smooth flow
-      Flow *= 0.5;
-    }
+    // if (Flow > MIN_FLOW) {
+    //   // Smooth flow
+    //   Flow *= 0.5;
+    // }
 
     Flow = clamp(Flow, 0, remainingMass);
     let rightNewMass = findNewMass(x, y);
@@ -157,10 +160,10 @@ function pushWaterToBlockRight(x, y, nonSolidBlocks, remainingMass) {
     let neighborMass = findMass(x + BLOCK_SIZE, y);
     // Equalize amount of water in this block and its neighbor
     let Flow = (mass.value - neighborMass.value) / 4;
-    if (Flow > MIN_FLOW) {
-      // Smooth flow
-      Flow *= 0.5;
-    }
+    // if (Flow > MIN_FLOW) {
+    //   // Smooth flow
+    //   Flow *= 0.5;
+    // }
 
     Flow = clamp(Flow, 0, remainingMass);
 
@@ -185,10 +188,10 @@ function pushWaterToBlockAbove(x, y, nonSolidBlocks, remainingMass) {
     let Flow =
       remainingMass -
       checkHowToDistributeWaterVertically(remainingMass + mass.value);
-    if (Flow > MIN_FLOW) {
-      // Smooth flow
-      Flow *= 0.5;
-    }
+    // if (Flow > MIN_FLOW) {
+    //   // Smooth flow
+    //   Flow *= 0.5;
+    // }
     let minOfMaxSpeedAndRemainingMass = Math.min(
       MAX_WATER_SPEED,
       remainingMass
@@ -227,7 +230,7 @@ function cleanupMassBoundaries() {
 
 function cleanupLeftAndRightMasses() {
   for (let y = 0; y < HEIGHT; y += BLOCK_SIZE) {
-    let leftMass = findMass(0, y);
+    let leftMass = findMass(-BLOCK_SIZE, y);
     let rightMass = findMass(WIDTH + BLOCK_SIZE, y);
     if (leftMass) {
       leftMass.value = 0;
