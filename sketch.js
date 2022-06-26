@@ -28,13 +28,13 @@ let stoneToCollect = 32;
 let ironToCollect = 16;
 let diamondToCollect = 8;
 
-let skyColor = [0, 0, 120];
+let skyColor = [212, 241, 249];
 let grassColor = [0, 180, 0];
 let dirtColor = [115, 118, 83];
 let stoneColor = [58, 50, 50];
 let ironColor = [161, 157, 148];
 let diamondColor = [69, 172, 165];
-let waterColor = [212, 241, 249];
+let waterColor = [90, 188, 216];
 let playerColor = [255, 0, 0];
 
 let grid = [];
@@ -437,6 +437,8 @@ function setAndDrawBlockType(node, blockType) {
       value: MAX_MASS,
     };
     playerAddedMasses.push(newMass);
+  } else {
+    clearMassFromNode(node.x, node.y);
   }
 }
 

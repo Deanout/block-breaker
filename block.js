@@ -30,6 +30,12 @@ function findByXY(x, y, searchSpace) {
   // }
 }
 
+function clearMassFromNode(x, y) {
+  let mass = findMass(x, y);
+  let newMass = findNewMass(x, y);
+  mass.value = newMass.value = 0;
+}
+
 function findCenterNodeX(width) {
   let centerNodeX = width - (width % BLOCK_SIZE);
   return centerNodeX;
