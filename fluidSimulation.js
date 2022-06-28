@@ -1,17 +1,9 @@
+
 function simulateWater() {
   addPendingPlayerPlacedFluids();
-  let last = Date.now();
   calculateRemainingMasses();
-  remainingMassCalculationTime = Date.now() - last;
-  last = Date.now();
   copyMasses();
-  massCopyTime = Date.now() - last;
-  last = Date.now();
   setBlockTypesByMass();
-  setBlockTypesByMassTime = Date.now() - last;
-  last = Date.now();
-  //   cleanupMassBoundaries();
-  boundaryCleanupTimer = Date.now() - last;
 }
 
 function addPendingPlayerPlacedFluids() {
@@ -19,6 +11,7 @@ function addPendingPlayerPlacedFluids() {
     let massToAdd = playerAddedMasses.pop();
     let node = findNode(massToAdd.x, massToAdd.y);
     node.blockType = water;
+
     let newMass = findNewMass(massToAdd.x, massToAdd.y);
 
     newMass.value += massToAdd.value;
@@ -29,61 +22,30 @@ function calculateRemainingMasses() {
   for (let x = 0; x < WIDTH; x += BLOCK_SIZE) {
     for (let y = 0; y < HEIGHT; y += BLOCK_SIZE) {
       let node = findNode(x, y);
-
+      // If this is true, then it's a solid block.
+      // Because it is NOT in the non solid blocks list
       if (!nonSolidBlocks.includes(node.blockType)) {
         continue;
       }
+
       let mass = findMass(x, y);
       let remainingMass = mass.value;
       if (remainingMass <= 0) {
         continue;
       }
-      remainingMass = pushWaterToBlockBelow(
-        x,
-        y,
-        nonSolidBlocks,
-        remainingMass
-      );
+      remainingMass = pushWaterToBlockBelow(x, y, remainingMass);
       if (remainingMass <= 0) {
         continue;
       }
-      remainingMass = pushWaterToBlockLeft(x, y, nonSolidBlocks, remainingMass);
+      remainingMass = pushWaterToBlockLeft(x, y, remainingMass);
       if (remainingMass <= 0) {
         continue;
       }
-      remainingMass = pushWaterToBlockRight(
-        x,
-        y,
-        nonSolidBlocks,
-        remainingMass
-      );
+      remainingMass = pushWaterToBlockRight(x, y, remainingMass);
       if (remainingMass <= 0) {
         continue;
       }
-      remainingMass = pushWaterToBlockAbove(
-        x,
-        y,
-        nonSolidBlocks,
-        remainingMass
-      );
-    }
-  }
-}
-
-function setBlockTypesByMass() {
-  for (let x = 1; x < WIDTH - 1; x += BLOCK_SIZE) {
-    for (let y = 1; y < HEIGHT - 1; y += BLOCK_SIZE) {
-      let node = findNode(x, y);
-      let mass = findMass(x, y);
-      if (!nonSolidBlocks.includes(node.blockType)) {
-        continue;
-      }
-      if (mass.value > MIN_MASS) {
-        node.blockType = water;
-      } else {
-        node.blockType = sky;
-        mass.value = 0;
-      }
+      remainingMass = pushWaterToBlockAbove(x, y, remainingMass);
     }
   }
 }
@@ -98,113 +60,123 @@ function copyMasses() {
   }
 }
 
-function pushWaterToBlockBelow(x, y, nonSolidBlocks, remainingMass) {
+function setBlockTypesByMass() {
+  for (let x = 1; x < WIDTH - 1; x += BLOCK_SIZE) {
+    for (let y = 1; y < HEIGHT - 1; y += BLOCK_SIZE) {
+      let node = findNode(x, y);
+      let mass = findMass(x, y);
+      // If this is true, then it's a solid block.
+      // Because it is NOT in the non solid blocks list
+      if (!nonSolidBlocks.includes(node.blockType)) {
+        continue;
+      }
+      if (mass.value > MIN_MASS) {
+        node.blockType = water;
+      } else {
+        node.blockType = sky;
+        mass.value = 0;
+      }
+    }
+  }
+}
+
+function pushWaterToBlockBelow(x, y, remainingMass) {
   let blockBelow = findNode(x, y + BLOCK_SIZE);
   if (nonSolidBlocks.includes(blockBelow?.blockType)) {
     let mass = findMass(x, y + BLOCK_SIZE);
-    let Flow =
+    let flow =
       checkHowToDistributeWaterVertically(remainingMass + mass.value) -
       mass.value;
 
-    if (Flow > MIN_FLOW) {
+    if (flow > MIN_FLOW) {
       // Smooth flow
-      Flow *= 0.5;
+      flow *= 0.5;
     }
-
     let minOfMaxSpeedAndRemainingMass = Math.min(
       MAX_WATER_SPEED,
       remainingMass
     );
-    Flow = clamp(Flow, 0, minOfMaxSpeedAndRemainingMass);
+    flow = clamp(flow, 0, minOfMaxSpeedAndRemainingMass);
+
     let topNewMass = findNewMass(x, y);
     let bottomNewMass = findNewMass(x, y + BLOCK_SIZE);
-    topNewMass.value -= Flow;
-    bottomNewMass.value += Flow;
-    remainingMass -= Flow;
+    topNewMass.value -= flow;
+    bottomNewMass.value += flow;
+    remainingMass -= flow;
   }
   return remainingMass;
 }
 
-function pushWaterToBlockLeft(x, y, nonSolidBlocks, remainingMass) {
+function pushWaterToBlockLeft(x, y, remainingMass) {
   let blockLeft = findNode(x - BLOCK_SIZE, y);
-  if (!blockLeft) {
-    return remainingMass;
-  }
-  if (nonSolidBlocks.includes(blockLeft.blockType)) {
+  if (nonSolidBlocks.includes(blockLeft?.blockType)) {
     let mass = findMass(x, y);
     let neighborMass = findMass(x - BLOCK_SIZE, y);
-    // Equalize amount of water in this block and its neighbor
-    let Flow = (mass.value - neighborMass.value) / 4;
-    if (Flow > MIN_FLOW) {
+    let flow = (mass.value - neighborMass.value) / 4;
+
+    if (flow > MIN_FLOW) {
       // Smooth flow
-      Flow *= 0.5;
+      flow *= 0.5;
     }
 
-    Flow = clamp(Flow, 0, remainingMass);
+    flow = clamp(flow, 0, remainingMass);
+
     let rightNewMass = findNewMass(x, y);
     let leftNewMass = findNewMass(x - BLOCK_SIZE, y);
-    rightNewMass.value -= Flow;
-    leftNewMass.value += Flow;
-    remainingMass -= Flow;
+    rightNewMass.value -= flow;
+    leftNewMass.value += flow;
+    remainingMass -= flow;
   }
   return remainingMass;
 }
 
-function pushWaterToBlockRight(x, y, nonSolidBlocks, remainingMass) {
+function pushWaterToBlockRight(x, y, remainingMass) {
   let blockRight = findNode(x + BLOCK_SIZE, y);
-  if (!blockRight) {
-    return remainingMass;
-  }
-  if (nonSolidBlocks.includes(blockRight.blockType)) {
+  if (nonSolidBlocks.includes(blockRight?.blockType)) {
     let mass = findMass(x, y);
     let neighborMass = findMass(x + BLOCK_SIZE, y);
-    // Equalize amount of water in this block and its neighbor
-    let Flow = (mass.value - neighborMass.value) / 4;
-    if (Flow > MIN_FLOW) {
+    let flow = (mass.value - neighborMass.value) / 4;
+
+    if (flow > MIN_FLOW) {
       // Smooth flow
-      Flow *= 0.5;
+      flow *= 0.5;
     }
 
-    Flow = clamp(Flow, 0, remainingMass);
+    flow = clamp(flow, 0, remainingMass);
 
     let leftNewMass = findNewMass(x, y);
     let rightNewMass = findNewMass(x + BLOCK_SIZE, y);
-
-    leftNewMass.value -= Flow;
-    rightNewMass.value += Flow;
-    remainingMass -= Flow;
+    leftNewMass.value -= flow;
+    rightNewMass.value += flow;
+    remainingMass -= flow;
   }
   return remainingMass;
 }
 
-function pushWaterToBlockAbove(x, y, nonSolidBlocks, remainingMass) {
+function pushWaterToBlockAbove(x, y, remainingMass) {
   let blockAbove = findNode(x, y - BLOCK_SIZE);
-  if (!blockAbove) {
-    return;
-  }
-  if (nonSolidBlocks.includes(blockAbove.blockType)) {
-    // Equalize amount of water in this block and its neighbor
+  if (nonSolidBlocks.includes(blockAbove?.blockType)) {
     let mass = findMass(x, y - BLOCK_SIZE);
-    let Flow =
+    let flow =
       remainingMass -
       checkHowToDistributeWaterVertically(remainingMass + mass.value);
-    if (Flow > MIN_FLOW) {
+
+    if (flow > MIN_FLOW) {
       // Smooth flow
-      Flow *= 0.5;
+      flow *= 0.5;
     }
     let minOfMaxSpeedAndRemainingMass = Math.min(
       MAX_WATER_SPEED,
       remainingMass
     );
-
-    Flow = clamp(Flow, 0, minOfMaxSpeedAndRemainingMass);
+    flow = clamp(flow, 0, minOfMaxSpeedAndRemainingMass);
 
     let bottomNewMass = findNewMass(x, y);
     let topNewMass = findNewMass(x, y - BLOCK_SIZE);
 
-    bottomNewMass.value -= Flow;
-    topNewMass.value += Flow;
-    remainingMass -= Flow;
+    bottomNewMass.value -= flow;
+    topNewMass.value += flow;
+    remainingMass -= flow;
   }
   return remainingMass;
 }
@@ -214,19 +186,20 @@ function checkHowToDistributeWaterVertically(total_mass) {
   if (total_mass <= 1) {
     amountThatShouldBeBelow = 1;
   } else if (total_mass < 2 * MAX_MASS + COMPRESSION) {
+    let squaredMax = Math.pow(MAX_MASS, 2);
     amountThatShouldBeBelow =
-      (MAX_MASS * MAX_MASS + total_mass * COMPRESSION) /
-      (MAX_MASS + COMPRESSION);
+      (squaredMax + total_mass * COMPRESSION) / (MAX_MASS + COMPRESSION);
   } else {
     amountThatShouldBeBelow = (total_mass + COMPRESSION) / 2;
   }
+
   return amountThatShouldBeBelow;
 }
 
-// function cleanupMassBoundaries() {
-//   cleanupTopAndBottomMasses();
-//   cleanupLeftAndRightMasses();
-// }
+function cleanupMassBoundaries() {
+  cleanupTopAndBottomMasses();
+  cleanupLeftAndRightMasses();
+}
 
 function cleanupLeftAndRightMasses() {
   for (let y = 0; y < HEIGHT; y += BLOCK_SIZE) {
