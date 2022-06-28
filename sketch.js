@@ -3,7 +3,7 @@ let continuePlaying = false;
 let frequency = 0.002;
 let amplitude = 1;
 let seed = 0;
-let debug = true;
+let debug = false;
 
 let sky = "sky";
 let grass = "grass";
@@ -76,7 +76,7 @@ function setup() {
 
 function draw() {
   drawTerrain();
-  doPlayerMovement();
+  // doPlayerMovement();
   updatePlayerInventory();
   checkIfPlayerWon();
 

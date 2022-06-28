@@ -14,7 +14,7 @@ const CENTER_WIDTH = calculateCenter(WIDTH);
 const CENTER_HEIGHT = calculateCenter(HEIGHT);
 
 const JUMP_HEIGHT = 3;
-const PLAYER_REACH = BLOCK_SIZE * 50;
+const PLAYER_REACH = BLOCK_SIZE * 10;
 
 /**
  * Calculate the value in blocks, rounded up to the nearest multiple of block size.

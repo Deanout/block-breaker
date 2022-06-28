@@ -12,28 +12,20 @@ function findNewMass(x, y) {
 function findByXY(x, y, searchSpace) {
   let nodeX = x - (x % BLOCK_SIZE);
   let nodeY = y - (y % BLOCK_SIZE);
-  if (nodeX < 0 || nodeY < 0) {
-    return null;
-  }
-  if (nodeX > WIDTH || nodeY > HEIGHT) {
-    return null;
-  }
+
   let xIndex = nodeX / BLOCK_SIZE;
   let yIndex = nodeY / BLOCK_SIZE;
+
   let index = yIndex + xIndex * HEIGHT_IN_BLOCKS;
 
   return searchSpace[index];
-  // for (let i = 0; i < searchSpace.length; i++) {
-  //   if (searchSpace[i].x === nodeX && searchSpace[i].y === nodeY) {
-  //     return searchSpace[i];
-  //   }
-  // }
 }
 
 function clearMassFromNode(x, y) {
   let mass = findMass(x, y);
   let newMass = findNewMass(x, y);
-  mass.value = newMass.value = 0;
+  mass.value = 0;
+  newMass.value = 0;
 }
 
 function findCenterNodeX(width) {
