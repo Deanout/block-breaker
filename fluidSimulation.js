@@ -1,3 +1,4 @@
+
 function simulateWater() {
   addPendingPlayerPlacedFluids();
   calculateRemainingMasses();
@@ -193,4 +194,35 @@ function checkHowToDistributeWaterVertically(total_mass) {
   }
 
   return amountThatShouldBeBelow;
+}
+
+function cleanupMassBoundaries() {
+  cleanupTopAndBottomMasses();
+  cleanupLeftAndRightMasses();
+}
+
+function cleanupLeftAndRightMasses() {
+  for (let y = 0; y < HEIGHT; y += BLOCK_SIZE) {
+    let leftMass = findMass(-BLOCK_SIZE, y);
+    let rightMass = findMass(WIDTH + BLOCK_SIZE, y);
+    if (leftMass) {
+      leftMass.value = 0;
+    }
+    if (rightMass) {
+      rightMass.value = 0;
+    }
+  }
+}
+
+function cleanupTopAndBottomMasses() {
+  for (let x = 0; x <= WIDTH; x += BLOCK_SIZE) {
+    let topMass = findMass(x, -1);
+    let bottomMass = findMass(x, HEIGHT + BLOCK_SIZE);
+    if (topMass) {
+      topMass.value = 0;
+    }
+    if (bottomMass) {
+      bottomMass.value = 0;
+    }
+  }
 }

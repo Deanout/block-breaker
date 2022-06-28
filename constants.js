@@ -1,3 +1,4 @@
+
 const WIDTH = window.innerWidth;
 const HEIGHT = window.innerHeight * 0.9;
 const BLOCK_SIZE = 25;
