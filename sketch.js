@@ -1,8 +1,3 @@
-const WIDTH = window.innerWidth;
-const HEIGHT = window.innerHeight * 0.9;
-const BLOCK_SIZE = 25;
-const JUMP_HEIGHT = 3;
-
 let continuePlaying = false;
 
 let frequency = 0.002;
@@ -21,8 +16,9 @@ let dirtContainer = document.getElementById("dirt");
 let stoneContainer = document.getElementById("stone");
 let diamondContainer = document.getElementById("diamond");
 let ironContainer = document.getElementById("iron");
+let waterContainer = document.getElementById("water");
 let restartButton = document.getElementById("restart");
-let activeContainer = grassContainer;
+let activeContainer = waterContainer;
 
 let grassToCollect = 128;
 let dirtToCollect = 64;
@@ -30,21 +26,25 @@ let stoneToCollect = 32;
 let ironToCollect = 16;
 let diamondToCollect = 8;
 
-let skyColor = [0, 0, 120];
+let skyColor = [212, 241, 249];
 let grassColor = [0, 180, 0];
 let dirtColor = [115, 118, 83];
 let stoneColor = [58, 50, 50];
 let ironColor = [161, 157, 148];
 let diamondColor = [69, 172, 165];
+let waterColor = [90, 188, 216];
 let playerColor = [255, 0, 0];
 
 let grid = [];
+let masses = [];
+let newMasses = [];
+let playerAddedMasses = [];
 
 let diamondChance = 5;
 let ironChance = 8;
 
 let player = {
-  x: 0,
+  x: findCenterNodeX(CENTER_WIDTH),
   y: 0,
   isFalling: false,
   inventory: {
@@ -53,9 +53,13 @@ let player = {
     stone: 0,
     iron: 0,
     diamond: 0,
+    water: 999,
   },
-  selectedBlockType: grass,
+  selectedBlockType: water,
 };
+
+let noCollisionBlocks = [sky, water];
+let nonSolidBlocks = [water, sky, player];
 
 function setup() {
   frameRate(15);
@@ -63,13 +67,45 @@ function setup() {
   createCanvas(WIDTH, HEIGHT);
   generateTerrain();
   doEventListeners();
-  setActiveContainer(grassContainer);
+  setActiveContainer(waterContainer);
+  let node = findNode(0, 0);
+  setAndDrawBlockType(node, water);
 }
 
 function draw() {
+  drawTerrain();
   doPlayerMovement();
   updatePlayerInventory();
   checkIfPlayerWon();
+  doLiquidTick();
+  if (mouseIsPressed) {
+    mousePressed();
+  }
+}
+function doLiquidTick() {
+  simulateWater();
+}
+function drawTerrain() {
+  for (let i = 0; i < grid.length; i++) {
+    let node = grid[i];
+    let { x, y, blockType } = node;
+    if (node.blockType === water) {
+      let mass = findMass(x, y);
+      rectMode(CORNER);
+      fill(skyColor);
+      rect(x, y, BLOCK_SIZE, BLOCK_SIZE);
+
+      rectMode(CORNERS);
+      fill(waterColor);
+      let startRectYOffset =
+        BLOCK_SIZE - (BLOCK_SIZE * mass.value) / BLOCK_SIZE;
+      rect(x, y + startRectYOffset, x + BLOCK_SIZE, y + BLOCK_SIZE);
+      rectMode(CORNER);
+    } else {
+      fill(getBlockTypeColor(blockType));
+      rect(x, y, BLOCK_SIZE, BLOCK_SIZE);
+    }
+  }
 }
 
 function checkIfPlayerWon() {
@@ -115,6 +151,10 @@ function doEventListeners() {
     player.selectedBlockType = iron;
     setActiveContainer(ironContainer);
   });
+  waterContainer.addEventListener("click", () => {
+    player.selectedBlockType = water;
+    setActiveContainer(waterContainer);
+  });
 }
 
 function setActiveContainer(container) {
@@ -149,6 +189,16 @@ function generateTerrain() {
         blockType: sky,
       };
       grid.push(node);
+      let mass = {
+        x: x,
+        y: y,
+        value: 0,
+      };
+      masses.push(mass);
+
+      let newMass = Object.assign({}, mass);
+      newMasses.push(newMass);
+
       let index = grid.indexOf(node);
       paintTerrainTiles(node, index);
       paintOres(node, index);
@@ -220,10 +270,8 @@ function doPlayerMovement() {
 
 function doPlayerJump() {
   for (let i = 0; i < JUMP_HEIGHT; i++) {
-    if (
-      keyIsDown(UP_ARROW) &&
-      findNode(player.x, player.y - BLOCK_SIZE).blockType === sky
-    ) {
+    let node = findNode(player.x, player.y - BLOCK_SIZE);
+    if (keyIsDown(UP_ARROW) && noCollisionBlocks.includes(node.blockType)) {
       updatePlayerPosition(player.x, player.y - BLOCK_SIZE);
     }
   }
@@ -239,7 +287,7 @@ function doPlayerFall() {
     return;
   }
   let node = findNode(player.x, player.y + BLOCK_SIZE);
-  if (node.blockType === sky) {
+  if (noCollisionBlocks.includes(node.blockType)) {
     player.isFalling = true;
     updatePlayerPosition(player.x, player.y + BLOCK_SIZE);
   } else {
@@ -251,10 +299,8 @@ function doPlayerMoveRight() {
   if (player.x + BLOCK_SIZE > WIDTH) {
     return;
   }
-  if (
-    keyIsDown(RIGHT_ARROW) &&
-    findNode(player.x + BLOCK_SIZE, player.y).blockType === sky
-  ) {
+  let node = findNode(player.x + BLOCK_SIZE, player.y);
+  if (keyIsDown(RIGHT_ARROW) && noCollisionBlocks.includes(node.blockType)) {
     updatePlayerPosition(player.x + BLOCK_SIZE, player.y);
   }
 }
@@ -263,21 +309,9 @@ function doPlayerMoveLeft() {
   if (player.x - BLOCK_SIZE < 0) {
     return;
   }
-  if (
-    keyIsDown(LEFT_ARROW) &&
-    findNode(player.x - BLOCK_SIZE, player.y).blockType === sky
-  ) {
+  let node = findNode(player.x - BLOCK_SIZE, player.y);
+  if (keyIsDown(LEFT_ARROW) && noCollisionBlocks.includes(node.blockType)) {
     updatePlayerPosition(player.x - BLOCK_SIZE, player.y);
-  }
-}
-
-function findNode(x, y) {
-  let nodeX = x - (x % BLOCK_SIZE);
-  let nodeY = y - (y % BLOCK_SIZE);
-  for (let i = 0; i < grid.length; i++) {
-    if (grid[i].x === nodeX && grid[i].y === nodeY) {
-      return grid[i];
-    }
   }
 }
 
@@ -308,15 +342,15 @@ function mousePressed() {
 function playerCanInteractWithBlock(node) {
   // check if node is 1 block from player
   let distance = dist(node.x, node.y, player.x, player.y);
-  return distance <= BLOCK_SIZE * 1.5;
+  return distance <= PLAYER_REACH;
 }
 
 function interactWithBlock(node) {
-  if (mouseButton === LEFT && node.blockType !== sky) {
+  if (mouseButton === LEFT && !noCollisionBlocks.includes(node.blockType)) {
     mineBlock(node);
     return;
   }
-  if (mouseButton === RIGHT && node.blockType === sky) {
+  if (mouseButton === RIGHT && noCollisionBlocks.includes(node.blockType)) {
     placeBlock(node);
   }
   if (mouseButton === CENTER && node.blockType !== sky) {
@@ -357,8 +391,16 @@ function addBlockTypeToInventory(blockType) {
 
 function setAndDrawBlockType(node, blockType) {
   node.blockType = blockType;
-  fill(getBlockTypeColor(blockType));
-  rect(node.x, node.y, BLOCK_SIZE, BLOCK_SIZE);
+  if (blockType === water) {
+    let newMass = {
+      x: node.x,
+      y: node.y,
+      value: MAX_MASS,
+    };
+    playerAddedMasses.push(newMass);
+  } else {
+    clearMassFromNode(node.x, node.y);
+  }
 }
 
 function getBlockTypeColor(blockType) {
@@ -375,6 +417,8 @@ function getBlockTypeColor(blockType) {
       return diamondColor;
     case iron:
       return ironColor;
+    case water:
+      return waterColor;
     default:
       return skyColor;
   }
@@ -400,6 +444,8 @@ function playerHasEnoughResources(blockType) {
       return player.inventory.diamond > 0;
     case iron:
       return player.inventory.iron > 0;
+    case water:
+      return player.inventory.water > 0;
     default:
       return false;
   }
@@ -411,6 +457,7 @@ function updatePlayerInventory() {
   stoneContainer.innerHTML = player.inventory.stone;
   diamondContainer.innerHTML = player.inventory.diamond;
   ironContainer.innerHTML = player.inventory.iron;
+  waterContainer.innerHTML = player.inventory.water;
 }
 
 function getContainerByBlockType(blockType) {
@@ -425,6 +472,8 @@ function getContainerByBlockType(blockType) {
       return diamondContainer;
     case iron:
       return ironContainer;
+    case water:
+      return waterContainer;
     default:
       return grassContainer;
   }
