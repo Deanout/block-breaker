@@ -76,7 +76,7 @@ function setup() {
 
 function draw() {
   drawTerrain();
-  // doPlayerMovement();
+  doPlayerMovement();
   updatePlayerInventory();
   checkIfPlayerWon();
 
