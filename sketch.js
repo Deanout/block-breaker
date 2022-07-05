@@ -621,12 +621,12 @@ function playerHasEnoughResources(blockType) {
 }
 
 function updatePlayerInventory() {
-  grassContainer.innerHTML = player.inventory.grass;
-  dirtContainer.innerHTML = player.inventory.dirt;
-  stoneContainer.innerHTML = player.inventory.stone;
-  diamondContainer.innerHTML = player.inventory.diamond;
-  ironContainer.innerHTML = player.inventory.iron;
-  waterContainer.innerHTML = player.inventory.water;
+  grassCounter.innerHTML = player.inventory.grass;
+  dirtCounter.innerHTML = player.inventory.dirt;
+  stoneCounter.innerHTML = player.inventory.stone;
+  diamondCounter.innerHTML = player.inventory.diamond;
+  ironCounter.innerHTML = player.inventory.iron;
+  waterCounter.innerHTML = player.inventory.water;
   woodCounter.innerHTML = player.inventory.wood;
   leafCounter.innerHTML = player.inventory.leaf;
   saplingCounter.innerHTML = player.inventory.sapling;
