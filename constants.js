@@ -1,4 +1,3 @@
-
 const WIDTH = window.innerWidth;
 const HEIGHT = window.innerHeight * 0.9;
 const BLOCK_SIZE = 25;
@@ -10,6 +9,15 @@ const MIN_MASS = 1;
 const COMPRESSION = 0.02;
 const MAX_WATER_SPEED = 5;
 const MIN_FLOW = 1;
+
+const TREE_GROWTH_STAGES = 7;
+const TREE_GROWTH_RATE = 10;
+const TREE_PLANT_RATE = 10;
+
+const LEAF_DECAY_RATE = 10;
+const LEAF_WOOD_RANGE = 4;
+const LEAF_WOOD_RANGE_IN_BLOCKS = LEAF_WOOD_RANGE * BLOCK_SIZE;
+const SAPLING_DROP_RATE = 8;
 
 const WIDTH_IN_BLOCKS = calculateValueInBlocks(WIDTH);
 const HEIGHT_IN_BLOCKS = calculateValueInBlocks(HEIGHT);

@@ -59,6 +59,17 @@ canvas {
   background-color: rgb(90, 188, 216);
 }
 
+#wood {
+  background-color: rgb(91, 45, 0);
+}
+#leaf {
+  background-color: rgba(5, 131, 5, 0.5);
+}
+#sapling {
+  background-color: rgb(191, 199, 49);
+}
+
+
 #restart {
   background-color: rgb(0, 0, 0);
 }
