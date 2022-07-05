@@ -24,6 +24,18 @@ function findCenterNodeX(width) {
   let centerNodeX = width - (width % BLOCK_SIZE);
   return centerNodeX;
 }
+/**
+ * Start at y = 0 and move down until a non-empty node is found.
+ */
+function findFirstNonEmptyNode(x) {
+  for (let y = 0; y < HEIGHT; y += BLOCK_SIZE) {
+    let node = findNode(x, y);
+    if (node.blockType !== sky) {
+      return node;
+    }
+  }
+  return null;
+}
 
 function clearMassFromNode(x, y) {
   let mass = findMass(x, y);

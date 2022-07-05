@@ -10,6 +10,10 @@ let dirt = "dirt";
 let stone = "stone";
 let iron = "iron";
 let diamond = "diamond";
+let water = "water";
+let wood = "wood";
+let leaf = "leaf";
+let sapling = "sapling";
 
 let grassContainer = document.getElementById("grass");
 let dirtContainer = document.getElementById("dirt");
@@ -17,8 +21,21 @@ let stoneContainer = document.getElementById("stone");
 let diamondContainer = document.getElementById("diamond");
 let ironContainer = document.getElementById("iron");
 let waterContainer = document.getElementById("water");
+let woodContainer = document.getElementById("wood");
+let leafContainer = document.getElementById("leaf");
+let saplingContainer = document.getElementById("sapling");
 let restartButton = document.getElementById("restart");
 let activeContainer = waterContainer;
+
+let grassCounter = document.getElementById("grass-counter");
+let dirtCounter = document.getElementById("dirt-counter");
+let stoneCounter = document.getElementById("stone-counter");
+let ironCounter = document.getElementById("iron-counter");
+let diamondCounter = document.getElementById("diamond-counter");
+let waterCounter = document.getElementById("water-counter");
+let woodCounter = document.getElementById("wood-counter");
+let leafCounter = document.getElementById("leaf-counter");
+let saplingCounter = document.getElementById("sapling-counter");
 
 let grassToCollect = 128;
 let dirtToCollect = 64;
@@ -33,12 +50,17 @@ let stoneColor = [58, 50, 50];
 let ironColor = [161, 157, 148];
 let diamondColor = [69, 172, 165];
 let waterColor = [90, 188, 216];
+let woodColor = [91, 45, 0];
+let leafColor = [5, 131, 5, 127.5];
+let saplingColor = [191, 199, 49];
+
 let playerColor = [255, 0, 0];
 
 let grid = [];
 let masses = [];
 let newMasses = [];
 let playerAddedMasses = [];
+let saplings = [];
 
 let diamondChance = 5;
 let ironChance = 8;
@@ -54,6 +76,9 @@ let player = {
     iron: 0,
     diamond: 0,
     water: 999,
+    wood: 30,
+    leaf: 60,
+    sapling: 5,
   },
   selectedBlockType: water,
 };
@@ -66,6 +91,7 @@ function setup() {
   setSeed();
   createCanvas(WIDTH, HEIGHT);
   generateTerrain();
+  generateTrees();
   doEventListeners();
   setActiveContainer(waterContainer);
   let node = findNode(0, 0);
@@ -73,6 +99,7 @@ function setup() {
 }
 
 function draw() {
+  doGrowthStages();
   drawTerrain();
   doPlayerMovement();
   updatePlayerInventory();
@@ -85,10 +112,51 @@ function draw() {
 function doLiquidTick() {
   simulateWater();
 }
+function doGrowthStages() {
+  for (let i = 0; i < saplings.length; i++) {
+    let sapling = saplings[i];
+    let { x, y, growthStage } = sapling;
+    if (growthStage < TREE_GROWTH_STAGES && random(100) < TREE_GROWTH_RATE) {
+      sapling.growthStage++;
+    } else if (growthStage >= TREE_GROWTH_STAGES) {
+      createTree(x, y);
+      saplings.splice(i, 1);
+    }
+  }
+}
+function createTree(x, y) {
+  let treeHeight = random(3, 6) * BLOCK_SIZE;
+  for (let i = 0; i <= treeHeight; i += BLOCK_SIZE) {
+    if (i < treeHeight) {
+      let node = findNode(x, y - i);
+      setAndDrawBlockType(node, wood);
+    }
+    if (i > 2 * BLOCK_SIZE) {
+      createLeaves(x, y, i);
+    }
+  }
+  let canopyHeight = treeHeight - 2 * BLOCK_SIZE;
+  for (let i = canopyHeight; i <= treeHeight; i += BLOCK_SIZE) {
+    createLeaves(x, y, i);
+  }
+}
+function createLeaves(x, y, i) {
+  let numLeavesLeft = int(random(0, 3)) * BLOCK_SIZE;
+  let numLeavesRight = int(random(0, 3)) * BLOCK_SIZE;
+  for (let j = -numLeavesLeft; j <= numLeavesRight; j += BLOCK_SIZE) {
+    let leafCandidateNode = findNode(x + j, y - i);
+    if (leafCandidateNode.blockType !== wood) {
+      setAndDrawBlockType(leafCandidateNode, leaf);
+    }
+  }
+}
 function drawTerrain() {
   for (let i = 0; i < grid.length; i++) {
     let node = grid[i];
     let { x, y, blockType } = node;
+    if (node.blockType === leaf) {
+      doLeafDecay(node);
+    }
     if (node.blockType === water) {
       let mass = findMass(x, y);
       rectMode(CORNER);
@@ -102,8 +170,45 @@ function drawTerrain() {
       rect(x, y + startRectYOffset, x + BLOCK_SIZE, y + BLOCK_SIZE);
       rectMode(CORNER);
     } else {
+      fill(skyColor);
+      rect(x, y, BLOCK_SIZE, BLOCK_SIZE);
       fill(getBlockTypeColor(blockType));
       rect(x, y, BLOCK_SIZE, BLOCK_SIZE);
+    }
+  }
+}
+
+function doLeafDecay(node) {
+  let { x, y } = node;
+  let woodInRange = false;
+
+  for (
+    let i = -LEAF_WOOD_RANGE_IN_BLOCKS;
+    i <= LEAF_WOOD_RANGE_IN_BLOCKS;
+    i += BLOCK_SIZE
+  ) {
+    for (
+      let j = -LEAF_WOOD_RANGE_IN_BLOCKS;
+      j <= LEAF_WOOD_RANGE_IN_BLOCKS;
+      j += BLOCK_SIZE
+    ) {
+      let node = findNode(x + i, y + j);
+      if (node.blockType === wood) {
+        woodInRange = true;
+        return;
+      }
+    }
+  }
+  decayLeaf(node);
+}
+
+function decayLeaf(node) {
+  if (random(100) < LEAF_DECAY_RATE) {
+    node.blockType = sky;
+    addBlockTypeToInventory(leaf);
+    let dropSapling = random(100) < SAPLING_DROP_RATE;
+    if (dropSapling) {
+      addBlockTypeToInventory(sapling);
     }
   }
 }
@@ -155,6 +260,18 @@ function doEventListeners() {
     player.selectedBlockType = water;
     setActiveContainer(waterContainer);
   });
+  woodContainer.addEventListener("click", () => {
+    player.selectedBlockType = wood;
+    setActiveContainer(woodContainer);
+  });
+  leafContainer.addEventListener("click", () => {
+    player.selectedBlockType = leaf;
+    setActiveContainer(leafContainer);
+  });
+  saplingContainer.addEventListener("click", () => {
+    player.selectedBlockType = sapling;
+    setActiveContainer(saplingContainer);
+  });
 }
 
 function setActiveContainer(container) {
@@ -187,6 +304,7 @@ function generateTerrain() {
         y: y,
         density: noiseValue,
         blockType: sky,
+        growthStage: 0,
       };
       grid.push(node);
       let mass = {
@@ -202,6 +320,18 @@ function generateTerrain() {
       let index = grid.indexOf(node);
       paintTerrainTiles(node, index);
       paintOres(node, index);
+    }
+  }
+}
+function generateTrees() {
+  for (let x = 0; x < WIDTH; x += BLOCK_SIZE) {
+    let node = findFirstNonEmptyNode(x);
+    if (node === null) {
+      return;
+    }
+    if (node.blockType === grass && random(100) <= TREE_PLANT_RATE) {
+      let nodeAbove = findNode(x, node.y - BLOCK_SIZE);
+      createTree(nodeAbove.x, nodeAbove.y);
     }
   }
 }
@@ -363,6 +493,10 @@ function interactWithBlock(node) {
 function mineBlock(node) {
   let blockType = node.blockType;
 
+  if (blockType === sapling) {
+    let indexOfSapling = saplings.indexOf(node);
+    saplings.splice(indexOfSapling, 1);
+  }
   addBlockTypeToInventory(blockType);
   setAndDrawBlockType(node, sky);
 }
@@ -384,6 +518,15 @@ function addBlockTypeToInventory(blockType) {
     case iron:
       player.inventory.iron++;
       break;
+    case wood:
+      player.inventory.wood++;
+      break;
+    case leaf:
+      player.inventory.leaf++;
+      break;
+    case sapling:
+      player.inventory.sapling++;
+      break;
     default:
       break;
   }
@@ -398,9 +541,12 @@ function setAndDrawBlockType(node, blockType) {
       value: MAX_MASS,
     };
     playerAddedMasses.push(newMass);
+  } else if (blockType === sapling) {
+    saplings.push(node);
   } else {
     clearMassFromNode(node.x, node.y);
   }
+  node.growthStage = 0;
 }
 
 function getBlockTypeColor(blockType) {
@@ -419,6 +565,12 @@ function getBlockTypeColor(blockType) {
       return ironColor;
     case water:
       return waterColor;
+    case wood:
+      return woodColor;
+    case leaf:
+      return leafColor;
+    case sapling:
+      return saplingColor;
     default:
       return skyColor;
   }
@@ -426,12 +578,23 @@ function getBlockTypeColor(blockType) {
 
 function placeBlock(node) {
   let blockType = player.selectedBlockType;
+  if (failedToPlaceBlock(node, blockType)) {
+    return;
+  }
   if (playerHasEnoughResources(blockType)) {
     player.inventory[blockType]--;
     setAndDrawBlockType(node, blockType);
   }
 }
-
+function failedToPlaceBlock(node, blockType) {
+  if (blockType === sapling) {
+    let nodeBelow = findNode(node.x, node.y + BLOCK_SIZE);
+    if (nodeBelow.blockType !== grass) {
+      return true;
+    }
+  }
+  return false;
+}
 function playerHasEnoughResources(blockType) {
   switch (blockType) {
     case grass:
@@ -446,6 +609,12 @@ function playerHasEnoughResources(blockType) {
       return player.inventory.iron > 0;
     case water:
       return player.inventory.water > 0;
+    case wood:
+      return player.inventory.wood > 0;
+    case leaf:
+      return player.inventory.leaf > 0;
+    case sapling:
+      return player.inventory.sapling > 0;
     default:
       return false;
   }
@@ -458,6 +627,9 @@ function updatePlayerInventory() {
   diamondContainer.innerHTML = player.inventory.diamond;
   ironContainer.innerHTML = player.inventory.iron;
   waterContainer.innerHTML = player.inventory.water;
+  woodCounter.innerHTML = player.inventory.wood;
+  leafCounter.innerHTML = player.inventory.leaf;
+  saplingCounter.innerHTML = player.inventory.sapling;
 }
 
 function getContainerByBlockType(blockType) {
@@ -474,6 +646,12 @@ function getContainerByBlockType(blockType) {
       return ironContainer;
     case water:
       return waterContainer;
+    case wood:
+      return woodContainer;
+    case leaf:
+      return leafContainer;
+    case sapling:
+      return saplingContainer;
     default:
       return grassContainer;
   }
