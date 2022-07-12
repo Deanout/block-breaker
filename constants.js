@@ -19,6 +19,9 @@ const LEAF_WOOD_RANGE = 4;
 const LEAF_WOOD_RANGE_IN_BLOCKS = LEAF_WOOD_RANGE * BLOCK_SIZE;
 const SAPLING_DROP_RATE = 8;
 
+const CAVE_DENSITY = 25;
+const CAVE_ITERATIONS = 5;
+
 const WIDTH_IN_BLOCKS = calculateValueInBlocks(WIDTH);
 const HEIGHT_IN_BLOCKS = calculateValueInBlocks(HEIGHT);
 const CENTER_WIDTH = calculateCenter(WIDTH);
