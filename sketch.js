@@ -91,7 +91,6 @@ function setup() {
   setSeed();
   createCanvas(WIDTH, HEIGHT);
   generateTerrain();
-  simulateCaves();
   generateTrees();
   doEventListeners();
   setActiveContainer(waterContainer);
@@ -360,7 +359,6 @@ function paintTerrainTiles(node, index) {
     grid[index].blockType = stone;
     fill(stoneColor);
     rect(x, y, BLOCK_SIZE, BLOCK_SIZE);
-    seedCave(node);
   }
 }
 
